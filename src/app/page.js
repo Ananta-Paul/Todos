@@ -1,5 +1,5 @@
 "use client";
-import React,{ useState,useOptimistic, useEffect } from 'react';
+import React,{ useState,useOptimistic, useEffect,useTransition } from 'react';
 import AddTask from '@/components/addTask';
 import Navbar from '@/components/navbar';
 import TodoItem from '@/components/todoItem';
@@ -10,8 +10,11 @@ import { IoMenu } from "react-icons/io5";
 
 const Home = () => {
   const [allTodos, setAllTodos] = useState([]);
-  const [currentTodos, setCurrentTodos] = useState([]);
+  const [currentTodos, setCurrentTodos] = useState(undefined);
   const [add, setAdd] = useState(false);
+  const [mode, setMode] = useState('all');
+  const [isPending, startTransition] = useTransition();
+
     const [optimisticTodos, setOptimisticTodos] = useOptimistic(currentTodos,
       (state, { action, task }) => {
         switch (action) {
@@ -32,12 +35,15 @@ const Home = () => {
       // Sort by priority
       else
        todos.sort((a, b) => b.priority - a.priority);
-      console.log(todos);
+      //console.log(todos);
       setCurrentTodos(todos);
     };
 
    
 const getCurTodos = async(action) => {
+  console.log(action,mode);
+  if(action == mode)return;
+  setMode(action);
       switch (action) {
         case 'all':
         setCurrentTodos(allTodos.filter((todo) => !todo.completed));
@@ -67,13 +73,18 @@ useEffect(() => {
     const handleAddTodo = async(todo) => {
       if(!todo.date)todo.date=new Date();
       const newTodo = { id: Date.now(),completed:false, ...todo };
-      await setOptimisticTodos({action:"add", task:newTodo});
+      const currentDate = new Date();
+    const targetDate = new Date(todo.date);
+      if(mode == 'all'||(mode == 'today'&&currentDate.toDateString() === targetDate.toDateString())){
+        startTransition(async()=>await setOptimisticTodos({action:"add", task:newTodo}));
       setCurrentTodos([ newTodo,...currentTodos]);
+    }
+      else getCurTodos('all');
       setAllTodos([ newTodo,...allTodos]);
       localStorage.setItem('todos', JSON.stringify([ newTodo,...allTodos]));
     };
 const handleRemoveTodo = async(id) => {
-  await setOptimisticTodos({action:"remove", task:id});
+  startTransition(async()=>await setOptimisticTodos({action:"remove", task:id}));
   setCurrentTodos(currentTodos.filter((todo) => todo.id !== id));
   setAllTodos(allTodos.filter((todo) => todo.id !== id));
   localStorage.setItem('todos', JSON.stringify(allTodos.filter((todo) => todo.id !== id)));
@@ -83,7 +94,7 @@ const handleCompletion = async(todo) => {
   const alltodos = [...allTodos];
   todo.completed = true;
   todo.date=new Date();
-  await setOptimisticTodos({action:"remove", task:todo.id});
+  startTransition(async()=>await setOptimisticTodos({action:"remove", task:todo.id}));
   setCurrentTodos(curtodos.filter((t) => t.id !== todo.id));
   const newtodos = [todo, ...alltodos.filter((t) => t.id !== todo.id)];
   setAllTodos(newtodos);
@@ -98,15 +109,27 @@ const handleCompletion = async(todo) => {
               <a className=' mx-auto sm:mx-0 flex items-center ' onClick={()=>setAdd(true)}><IoMdAdd size="25px"/>Add Task</a>
               <div className=' rounded-md border-gray-300 px-3  bg-slate-300 bg-opacity-60 hover:shadow-[rgba(50,50,93,0.25)_0px_6px_12px_-2px,_rgba(0,0,0,0.3)_0px_3px_7px_-3px] hover:backdrop-blur-sm dark:bg-gray-900 dark:bg-opacity-60 sm:!shadow-none  sm:!bg-transparent text-base sm:text-lg absolute group/menu sm:sticky flex-col flex sm:flex-row sm:items-center sm:gap-5 top-0 '>
                 <IoMenu size="30px" className='sm:hidden bg-transparent' />
-                <a className='group-hover/menu:block hidden sm:block' onClick={()=>getCurTodos("all")}>All</a>
-                <a className='group-hover/menu:block hidden sm:block' onClick={()=>getCurTodos("today")}>Today</a>
-                <a className='pb-3 sm:pb-0 group-hover/menu:block hidden sm:block' onClick={()=>getCurTodos("completed")}>completed</a>
+                <a className={`group-hover/menu:block hidden sm:block dark:hover:text-white hover:text-blue-700 ${
+                  mode === "all"
+                    ? " text-blue-700 dark:text-gray-50"
+                    : ""
+                }`} onClick={()=>startTransition(()=>getCurTodos("all"))}>All</a>
+                <a className={`group-hover/menu:block hidden sm:block dark:hover:text-white hover:text-blue-700 ${
+                  mode === "today"
+                    ? " text-blue-700 dark:text-gray-50"
+                    : ""
+                }`} onClick={()=>startTransition(()=>getCurTodos("today"))}>Today</a>
+                <a className={`group-hover/menu:block hidden sm:block dark:hover:text-white hover:text-blue-700 ${
+                  mode === "completed"
+                    ? " text-blue-700 dark:text-gray-50"
+                    : ""
+                }`}  onClick={()=>startTransition(()=>getCurTodos("completed"))}>completed</a>
               </div>
               <div className='relative group/menu2'>
                 <a><GiSettingsKnobs size="25px" className=' rotate-90'/></a>
-                <div className='p-2 hidden rounded-md border-gray-300 px-3  bg-slate-300 bg-opacity-60 shadow-[rgba(50,50,93,0.25)_0px_6px_12px_-2px,_rgba(0,0,0,0.3)_0px_3px_7px_-3px] backdrop-blur-sm dark:bg-gray-900 dark:bg-opacity-60 text-base absolute flex-col group-hover/menu2:flex text-end top-[24px] right-0 w-28'>
-                  <a className='pb-1' onClick={()=>sortTodos(true)}>Date-time</a>
-                  <a className='' onClick={()=>sortTodos(false)}>Priority</a>
+                <div className=' hidden rounded-md border-gray-300  bg-slate-300 bg-opacity-60 shadow-[rgba(50,50,93,0.25)_0px_6px_12px_-2px,_rgba(0,0,0,0.3)_0px_3px_7px_-3px] backdrop-blur-sm dark:bg-gray-900 dark:bg-opacity-60 text-base absolute flex-col group-hover/menu2:flex text-end top-[24px] right-0  w-fit'>
+                  <a className='p-2 rounded-t-lg hover:bg-gray-100  dark:hover:bg-gray-700 dark:hover:text-white' onClick={()=>sortTodos(true)}>Date&time</a>
+                  <a className='p-2 rounded-b-lg hover:bg-gray-100  dark:hover:bg-gray-700 dark:hover:text-white' onClick={()=>sortTodos(false)}>Priority</a>
                 </div>
               </div>
             </div>
@@ -115,10 +138,10 @@ const handleCompletion = async(todo) => {
           {optimisticTodos && optimisticTodos.length ?
           <ul className=' mt-5 w-full h-full overflow-y-scroll scrollbar-hide'>
              {optimisticTodos.map((todo, index) => (
-              <TodoItem todo={todo} key={index} comleteTodo={handleCompletion} deleteTodo={handleRemoveTodo}/>
+              <TodoItem todo={todo} key={index} comleteTodo={handleCompletion} deleteTodo={handleRemoveTodo} />
             ))} 
           </ul>
-          : <span className='flex justify-center mt-[100px]'>No todos to display!</span>}
+          : (optimisticTodos !== undefined ? <span className='flex justify-center mt-[100px]'>No todos to display!</span> : <div className="loader mx-auto mt-[100px] w-3 h-3" />)}
         </div>
       </main>
     );

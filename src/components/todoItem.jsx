@@ -1,9 +1,10 @@
-import React from 'react'
+import React,{useTransition} from 'react'
 import { MdDelete } from "react-icons/md";
 import { IoCheckmarkDoneOutline } from "react-icons/io5";
 
 const TodoItem = ({todo,deleteTodo,comleteTodo}) => {
   const pr=["","🔴","🟠","🟢"];
+  const [isPending, startTransition] = useTransition();
   const getShortenDateTime = (dateTime) => {
     const currentDate = new Date();
     const targetDate = new Date(dateTime);
@@ -55,7 +56,7 @@ const TodoItem = ({todo,deleteTodo,comleteTodo}) => {
 
       <div className="flex justify-end">
         <button
-          onClick={() => deleteTodo(todo.id)}
+          onClick={()=> deleteTodo(todo.id)}
           className="md:bg-red-500 md:hover:bg-blue-700 text-white font-bold p-1 rounded"
         >
           <span className='hidden font-medium md:block'>Remove</span>
