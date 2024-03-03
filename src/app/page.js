@@ -65,9 +65,11 @@ useEffect(() => {
       return currentDate.toDateString() === givenDate.toDateString();
     };
     const handleAddTodo = async(todo) => {
+      if(!todo.date)todo.date=new Date();
       const newTodo = { id: Date.now(),completed:false, ...todo };
       await setOptimisticTodos({action:"add", task:newTodo});
       setCurrentTodos([ newTodo,...currentTodos]);
+      setAllTodos([ newTodo,...allTodos]);
       localStorage.setItem('todos', JSON.stringify([ newTodo,...allTodos]));
     };
 const handleRemoveTodo = async(id) => {
@@ -88,7 +90,7 @@ const handleCompletion = async(todo) => {
   localStorage.setItem('todos', JSON.stringify(newtodos));
 }
     return (
-      <main className={`text-gray-700 dark:text-slate-400 overflow-hidden h-screen bg-gradient-to-r from-gray-50 via-gray-300 to-gray-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 `}>       
+      <main className={`flex flex-col text-gray-700 dark:text-slate-400 overflow-hidden h-screen bg-gradient-to-r from-gray-50 via-gray-300 to-gray-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 `}>       
         <Navbar/>
         <div className="mx-auto max-w-2xl w-10/12 rounded-lg sm:rounded-xl flex flex-col min-h-screen py-2">
           <div className='w-full group/card relative'>{!add? <>
@@ -110,7 +112,8 @@ const handleCompletion = async(todo) => {
             </div>
           </>:
           <AddTask add={add} setAdd={setAdd} handleAddTodo={handleAddTodo}/>}</div> 
-          {optimisticTodos && optimisticTodos.length ?<ul className=' mt-5 w-full overflow-scroll scrollbar-hide'>
+          {optimisticTodos && optimisticTodos.length ?
+          <ul className=' mt-5 w-full h-full overflow-y-scroll scrollbar-hide'>
              {optimisticTodos.map((todo, index) => (
               <TodoItem todo={todo} key={index} comleteTodo={handleCompletion} deleteTodo={handleRemoveTodo}/>
             ))} 

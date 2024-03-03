@@ -3,10 +3,10 @@ import React ,{useState} from 'react'
 import { ImCross } from "react-icons/im";
 import { IoMdAdd } from "react-icons/io";
 
-const AddTask = ({handleAddTodo,add,setAdd}) => {
+const AddTask = ({handleAddTodo,setAdd}) => {
     const [taskName, setTaskName] = useState('');
     const [description, setDescription] = useState('');
-    const [date, setDate] = useState(new Date());
+    const [date, setDate] = useState('');
     const [priority, setPriority] = useState('');
     const AddTodo = () => {
       if (taskName) {
@@ -14,6 +14,7 @@ const AddTask = ({handleAddTodo,add,setAdd}) => {
         setTaskName('');
         setDescription(''); 
         setPriority('');
+        setDate('');
       }
     };
 
